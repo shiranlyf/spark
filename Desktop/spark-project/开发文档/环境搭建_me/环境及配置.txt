@@ -1,0 +1,370 @@
+####################################################################
+start-dfs.sh
+start-yarn.sh
+zkServer.sh start  #��̨�����϶�����
+[root@sparkproject1 local]# cd kafka/   #��̨ȫ������
+[root@sparkproject1 kafka]# nohup bin/kafka-server-start.sh config/server.properties &
+
+#����flume-agent����
+flume-ng agent -n agent1 -c conf -f /usr/local/flume/conf/flume-conf.properties -Dflume.root.logger=DEBUG,console
+####################################################################
+
+
+
+[root@sparkproject1 local]# tar -zxvf hive-0.13.1-cdh5.3.6.tar.gz
+[root@sparkproject1 local]# mv hive-0.13.1-cdh5.3.6/  hive
+
+[root@sparkproject1 local]# cat ~/.bashrc 
+# .bashrc
+
+# User specific aliases and functions
+
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+
+export JAVA_HOME=/usr/java/latest
+export HADOOP_HOME=/usr/local/hadoop
+export HIVE_HOME=/usr/local/hive
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$HIVE_HOME/bin
+
+[root@sparkproject1 local]# source ~/.bashrc 
+
+
+[root@sparkproject1 local]# yum install -y mysql-server
+[root@sparkproject1 local]# service mysqld start
+[root@sparkproject1 local]# chkconfig mysqld on
+[root@sparkproject1 local]# yum install -y mysql-connector-java
+
+[root@sparkproject1 local]# cp /usr/share/java/mysql-connector-java-5.1.17.jar /usr/local/hive/lib/
+
+
+mysql
+mysql> create database if not exists hive_metadata
+mysql> grant all privileges on hive_metadata.* to 'hive'@'%' identified by 'hive';
+mysql> grant all privileges on hive_metadata.* to 'hive'@'localhost' identified by 'hive';
+mysql> grant all privileges on hive_metadata.* to 'hive'@'spark' identified by 'hive';
+mysql> flush privileges;
+mysql> grant all privileges on hive_metadata.* to 'hive'@'sparkproject1' identified by 'hive';
+mysql> 
+exit
+
+hive�ļ����ã�
+[root@sparkproject1 conf]# mv hive-default.xml.template hive-site.xml
+
+hive-site.xml�����ļ��޸�
+<property>
+  <name>javax.jdo.option.ConnectionURL</name>
+  <value>jdbc:mysql://sparkproject1:3306/hive_metadata?createDatabaseIfNotExist=true</value>
+  <description>JDBC connect string for a JDBC metastore</description>
+</property>
+<property>
+  <name>javax.jdo.option.ConnectionDriverName</name>
+  <value>com.mysql.jdbc.Driver</value>
+  <description>Driver class name for a JDBC metastore</description>
+</property>
+<property>
+  <name>javax.jdo.option.ConnectionUserName</name>
+  <value>hive</value>
+  <description>username to use against metastore database</description>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionPassword</name>
+  <value>hive</value>
+  <description>password to use against metastore database</description>
+</property>
+
+<!--�޸�Ŀ¼-->
+<property>
+  <name>hive.metastore.warehouse.dir</name>
+  <value>/user/hive/warehouse</value>
+  <description>location of default database for the warehouse</description>
+</property>
+
+[root@sparkproject1 conf]# mv hive-env.sh.template hive-env.sh
+
+[root@sparkproject1 bin]# pwd
+/usr/local/hive/bin
+
+[root@sparkproject1 bin]# vi hive-config.sh 
+export JAVA_HOME=/usr/java/latest
+export HIVE_HOME=/usr/local/hive
+export HADOOP_HOME=/usr/local/hadoop
+
+hive������
+hive> create table users(id int, name string);
+hive> drop table users;
+hive> create table users(id int, name string) row format delimited fields terminated by '\t';
+hive> load data local inpath '/usr/local/users.txt' into table users;
+hive> select name from users; #����ȫ���ѯ��ʱ����mapreduce���в�ѯ
+
+[root@sparkproject1 local]# tar -zxvf zookeeper-3.4.5-cdh5.3.6.tar.gz 
+[root@sparkproject1 local]# mv zookeeper-3.4.5-cdh5.3.6   zk
+
+export JAVA_HOME=/usr/java/latest
+export HADOOP_HOME=/usr/local/hadoop
+export HIVE_HOME=/usr/local/hive
+export ZOOKEEPER_HOME=/usr/local/zk
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$HIVE_HOME/bin:$Z
+OOKEEPER_HOME/bin
+
+"~/.bashrc" 18L, 420C written
+[root@sparkproject1 local]# source ~/.bashrc 
+
+zk�������ã�
+[root@sparkproject1 local]# cd zk/conf/
+[root@sparkproject1 conf]# mv  zoo_sample.cfg zoo.cfg 
+
+
+vi zoo.cfg����
+dataDir=/usr/local/zk/data
+# the port at which the clients will connect
+#autopurge.purgeInterval=1
+server.0=sparkproject1:2888:3888
+server.1=sparkproject2:2888:3888
+server.2=sparkproject3:2888:3888
+
+[root@sparkproject1 local]# cd zk
+[root@sparkproject1 zk]# mkdir data
+[root@sparkproject1 zk]# cd data
+[root@sparkproject1 data]# vi myid  #������Ϊ 1  2
+0
+
+[root@sparkproject1 local]# scp -r zk root@sparkproject2:/usr/local/^C
+[root@sparkproject1 local]# scp ~/.bashrc root@sparkproject2:~
+
+
+zkServer.sh start  #��̨�����϶�����
+[root@sparkproject1 conf]# zkServer.sh  status
+
+
+
+#kafka��װ
+[root@sparkproject1 local]# tar -zxvf scala-2.11.4.tgz 
+[root@sparkproject1 local]# mv scala-2.11.4/  scala
+
+
+export JAVA_HOME=/usr/java/latest
+export HADOOP_HOME=/usr/local/hadoop
+export HIVE_HOME=/usr/local/hive
+export ZOOKEEPER_HOME=/usr/local/zk
+export SCALA_HOME=/usr/local/scala
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$HIVE_HOME/bin:$ZOOKEEPER_HOME/bin:$SCALA_HOME/bin
+"~/.bashrc" 19L, 471C written
+[root@sparkproject1 local]# source ~/.bashrc 
+[root@sparkproject1 local]# scala -version
+
+[root@sparkproject1 local]# scp -r scala/  root@sparkproject3:/usr/local/
+[root@sparkproject1 local]# scp -r ~/.bashrc  root@sparkproject3:~
+
+[root@sparkproject1 local]# tar -zxvf kafka_2.9.2-0.8.1.tgz 
+[root@sparkproject1 local]# mv kafka_2.9.2-0.8.1/  kafka
+
+���û���������
+[root@sparkproject1 config]# pwd
+/usr/local/kafka/config
+vi server.properties
+broker.id=0  #һ������  1 2
+zookeeper.connection=192.168.153.165:2181,192.168.153.166:2181,192.168.153.167:2181
+
+[root@sparkproject1 local]# mv slf4j-nop-1.7.6.jar kafka/libs/
+
+
+[root@sparkproject1 local]# scp -r kafka/  root@sparkproject2:/usr/local/   broker.id�ֱ�Ϊ2  3
+
+#ɾ�����  -XX:+UseCompressedOops����
+# [root@sparkproject1 local]# vi kafka/bin/kafka-run-class.sh   JVM performance options
+if [ -z "$KAFKA_JVM_PERFORMANCE_OPTS" ]; then
+  KAFKA_JVM_PERFORMANCE_OPTS="-server -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC -Djava.awt.headless=true"
+fi
+
+[root@sparkproject1 local]# cd kafka/   #��̨ȫ������
+[root@sparkproject1 kafka]# nohup bin/kafka-server-start.sh config/server.properties &
+root@sparkproject3 kafka]# cat nohup.out   #���nohup��״̬
+
+
+#����һ��topic
+[root@sparkproject1 kafka]# bin/kafka-topics.sh --zookeeper 192.168.153.165:2181,192.168.153.166:2181,192.168.153.167:2181  --topic TestTopic --replication-factor 1 --partitions 1 -create
+
+
+#����һ��������    ���������п������ѵ� 
+#������  �������������������  ���������п������ѵ�����
+[root@sparkproject1 kafka]# bin/kafka-console-producer.sh --broker-list 192.168.153.165:9092,192.168.153.166:9092,192.168.153.167:9092  --topic TestTopic
+hello world
+
+#������
+[root@sparkproject1 kafka]# bin/kafka-console-consumer.sh --zookeeper 192.168.153.165:2181,192.168.153.166:2181,192.168.153.167:2181 --topic TestTopic --from-beginning
+hello world
+
+
+#flume��־�ռ���װ
+[root@sparkproject1 local]# mv apache-flume-1.5.0-cdh5.3.6-bin/  flume
+export ZOOKEEPER_HOME=/usr/local/zk
+export SCALA_HOME=/usr/local/scala
+export FLUME_HOME=/usr/local/flume
+export FLUME_HOME_CONF=$FLUME_HOME/conf
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$HIVE_HOME/bin:$ZOOKEEPER_HOME/bin:$SCALA_HOME/bin:$FLUME_HOME/bin
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+"~/.bashrc" 21L, 562C written
+[root@sparkproject1 local]# source ~/.bashrc 
+
+[root@sparkproject1 conf]# mv flume-conf.properties.template flume-conf.properties
+
+#flume-conf.properties�ļ�����
+# The configuration file needs to define the sources,
+# the channels and the sinks.
+# Sources, channels and sinks are defined per agent,
+# in this case called 'agent'
+
+agent1.sources=source1
+agent1.sinks=sink1
+agent1.channels=channel1
+
+# For each one of the sources, the type is defined
+agent1.sources.source1.type=spooldir
+agent1.sources.source1.spoolDir=/usr/local/logs
+agent1.sources.source1.channels=channel1
+agent1.sources.source1.fileHeader = false
+agent1.sources.source1.interceptors = i1
+agent1.sources.source1.interceptors.i1.type = timestamp
+
+# Each sink's type must be defined
+agent1.sinks.sink1.type=hdfs
+agent1.sinks.sink1.hdfs.path=hdfs://sparkproject1:9000/logs
+agent1.sinks.sink1.hdfs.fileType=DataStream
+agent1.sinks.sink1.hdfs.writeFormat=TEXT
+agent1.sinks.sink1.hdfs.rollInterval=1
+agent1.sinks.sink1.channel=channel1
+agent1.sinks.sink1.hdfs.filePrefix=%Y-%m-%d
+
+# Each channel's type is defined.
+agent1.channels.channel1.type=file
+agent1.channels.channel1.checkpointDir=/usr/local/logs_tmp_cp
+agent1.channels.channel1.dataDirs=/usr/local/logs_tmp
+"flume-conf.properties" 49L, 1856C written
+
+
+#�����ļ���
+[root@sparkproject1 local]# mkdir  logs
+[root@sparkproject1 local]# hdfs dfs -mkdir /logs
+
+#����flume-agent����
+flume-ng agent -n agent1 -c conf -f /usr/local/flume/conf/flume-conf.properties -Dflume.root.logger=DEBUG,console
+
+#�Ƶ�ָ��Ŀ¼���ϴ���hdfs��
+[root@sparkproject1 local]# mv ids logs
+[root@sparkproject1 local]# hdfs dfs -lsr /logs
+lsr: DEPRECATED: Please use 'ls -R' instead.
+18/04/05 07:17:13 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+-rw-r--r--   2 root supergroup         12 2018-04-05 07:16 /logs/2018-04-05.1522883775128
+
+
+[root@sparkproject1 local]# hdfs dfs -text /logs/2018-04-05.1522883775128
+
+
+#spark��װ
+[root@sparkproject1 local]# tar -zxvf spark-1.5.1-bin-hadoop2.4.tgz ^C
+[root@sparkproject1 local]# rm -rf spark-1.5.1-bin-hadoop2.4.tgz 
+[root@sparkproject1 local]# mv spark-1.5.1-bin-hadoop2.4/  spark
+
+
+export JAVA_HOME=/usr/java/latest
+export HADOOP_HOME=/usr/local/hadoop
+export HIVE_HOME=/usr/local/hive
+export ZOOKEEPER_HOME=/usr/local/zk
+export SCALA_HOME=/usr/local/scala
+export FLUME_HOME=/usr/local/flume
+export FLUME_HOME_CONF=$FLUME_HOME/conf
+export SPARK_HOME=/usr/local/spark
+export CLASSPATH=.:$CLASSPATH:$JAVA_HOME/lib:$JAVA_HOME/jre/lib
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$HIVE_HOME/bin:$ZOOKEEPER_HOME/bin:$SCALA_HOME/bin:$FLUME_HOME/bin:$SPARK_HOME/bin
+[root@sparkproject1 local]# source ~/.bashrc 
+
+#Spark������������
+[root@sparkproject1 conf]# pwd
+/usr/local/spark/conf
+[root@sparkproject1 conf]# mv spark-env.sh.template spark-env.sh
+
+#spark������������   spark-env.sh
+# Copy it as spark-env.sh and edit that to configure Spark for your site.
+
+export JAVA_HOME=/usr/java/latest
+export SCALA_HOME=/usr/local/scala
+export HADOOP_HOME=/usr/local/hadoop
+export HADOOP_CONF_DIR=/usr/local/hadoop/etc/hadoop
+
+# Options read when launching programs locally with
+
+
+[root@sparkproject1 local]# mkdir spark-study
+
+#vi spark_pi.sh�ļ�
+/usr/local/spark/bin/spark-submit \
+--class org.apache.spark.example.JavaSparkPi \
+--master yarn-client \
+--num-executors 1 \
+--driver-memory 1m \
+--executor-memory 1m \
+--executor-cores 1 \
+/usr/local/spark/lib/spark-examples-1.5.1-hadoop2.4.0.jar \
+
+[root@sparkproject1 spark-study]# chmod 777 spark_pi.sh 
+
+
+
+---------------------------------------hive table����-------------------------------------------------------------
+
+create table user_info(
+  user_id bigint,
+  username string,
+  name string,
+  age bigint,
+  professional string,
+  city string,
+  sex bigint
+);
+load data local inpath '/usr/local/spark-study/user_info.txt' into table user_info;
+
+create table user_visit_action һ��
+
+
+grant all privileges on spark_project.* to 'hive'@'%' identified by 'hive';
+flush privileges;
+
+
+1��������
+  hive-site.xml��mysql������sh�ű���
+2�����������ļ�
+  cp /usr/local/hive/conf/hive-site.xml /usr/local/spark/conf/hadoop fs -lsr /tmp
+3���޸�/tmp/hive-rootȨ��
+  hadoop fs -lsr /tmp
+  hadoop fs -chmod 777 /tmp/hive-root
+
+
+
+------spark_page.xml------------
+/usr/local/spark/bin/spark-submit \
+--class  com.ishiran.sparkproject.spark.page.PageOneStepConvertRateSpark  \
+--num-executors 1 \
+--driver-memory 100m \
+--executor-memory 100m \
+--executor-cores 1 \
+--files /usr/local/hive/conf/hive-site.xml \
+--driver-class-path /usr/local/hive/lib/mysql-connector-java-5.1.17.jar \
+/usr/local/spark-study/spark-project-0.0.1-SNAPSHOT-jar-with-dependencies.jar \
+${1}
+
+
+���н̳�
+ ./spark_page.xml 2
+ 
+ 
+ 打 jar包 
+clean  package
+
+
+
+
